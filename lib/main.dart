@@ -1,24 +1,22 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// Catatan Penting:
-// 1. Hapus package `google_maps_flutter` dan tambahkan `flutter_map` dan `latlong2`
-//    di file pubspec.yaml Anda:
-//
-//    dependencies:
-//      flutter:
-//        sdk: flutter
-//      flutter_map: ^6.1.0 // Gunakan versi terbaru
-//      latlong2: ^0.9.0    // Gunakan versi terbaru
-//
-// 2. TIDAK PERLU API KEY. Hapus konfigurasi API Key dari file Android & iOS jika ada.
-//
-// 3. Jalankan `flutter pub get` di terminal.
+// Import semua layar baru
+import 'package:tasik_siaga/screens/splash_screen.dart';
+import 'package:tasik_siaga/screens/public/map_screen.dart';
+import 'package:tasik_siaga/screens/admin/admin_login_screen.dart';
+import 'package:tasik_siaga/screens/admin/admin_dashboard_screen.dart';
+import 'package:tasik_siaga/screens/public/report_form_screen.dart';
+import 'package:tasik_siaga/services/auth_service.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => AuthService(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -27,18 +25,61 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Tasik Siaga',
+      title: 'Tasik Siaga: Peta Bencana',
       theme: ThemeData(
         primarySwatch: Colors.teal,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.teal,
+          foregroundColor: Colors.white,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.teal,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+          ),
+        ),
       ),
       debugShowCheckedModeBanner: false,
-      initialRoute: '/',
+      // Logika untuk menentukan halaman awal
+      home: const AuthChecker(),
       routes: {
-        '/': (context) => const SplashScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/home': (context) => const MapScreen(),
+        '/map': (context) => const MapScreen(),
+        '/login': (context) => const AdminLoginScreen(),
+        '/dashboard': (context) => const AdminDashboardScreen(),
+        '/report': (context) => const ReportFormScreen(),
+        // Tambahkan rute lain untuk verifikasi dan form admin di sini
+      },
+    );
+  }
+}
+
+// Widget ini akan memeriksa status login dan mengarahkan pengguna
+class AuthChecker extends StatelessWidget {
+  const AuthChecker({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      // Kita gunakan future dari provider AuthService
+      future: Provider.of<AuthService>(context, listen: false).isLoggedIn(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // Tampilkan splash screen selagi memeriksa
+          return const SplashScreen();
+        } else {
+          if (snapshot.data == true) {
+            // Jika sudah login, langsung ke dashboard admin
+            return const AdminDashboardScreen();
+          } else {
+            // Jika tidak, ke peta publik
+            return const MapScreen();
+          }
+        }
       },
     );
   }
