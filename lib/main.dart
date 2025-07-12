@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tasik_siaga/screens/admin/disaster_form_screen.dart';
+import 'package:tasik_siaga/screens/admin/manage_disasters_screen.dart';
+import 'package:tasik_siaga/screens/admin/verification_list_screen.dart';
 
-// Import semua layar baru
+// Import semua layar
 import 'package:tasik_siaga/screens/splash_screen.dart';
 import 'package:tasik_siaga/screens/public/map_screen.dart';
 import 'package:tasik_siaga/screens/admin/admin_login_screen.dart';
@@ -45,14 +47,16 @@ class MyApp extends StatelessWidget {
         ),
       ),
       debugShowCheckedModeBanner: false,
-      // Logika untuk menentukan halaman awal
       home: const AuthChecker(),
       routes: {
         '/map': (context) => const MapScreen(),
         '/login': (context) => const AdminLoginScreen(),
         '/dashboard': (context) => const AdminDashboardScreen(),
-        '/report': (context) => const ReportFormScreen(),
-        // Tambahkan rute lain untuk verifikasi dan form admin di sini
+
+        // Rute baru untuk admin
+        '/manage-disasters': (context) => const ManageDisastersScreen(),
+        '/verification-list': (context) => const VerificationListScreen(),
+        '/disaster-form': (context) => const DisasterFormScreen(),
       },
     );
   }
@@ -65,18 +69,14 @@ class AuthChecker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      // Kita gunakan future dari provider AuthService
       future: Provider.of<AuthService>(context, listen: false).isLoggedIn(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // Tampilkan splash screen selagi memeriksa
           return const SplashScreen();
         } else {
           if (snapshot.data == true) {
-            // Jika sudah login, langsung ke dashboard admin
             return const AdminDashboardScreen();
           } else {
-            // Jika tidak, ke peta publik
             return const MapScreen();
           }
         }

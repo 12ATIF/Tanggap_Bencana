@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 
+// File ini sudah tidak digunakan lagi dalam alur AuthChecker,
+// tetapi diperbaiki untuk mencegah crash jika dipanggil di tempat lain.
+// Logika navigasi utama kini ditangani oleh AuthChecker di main.dart.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -11,25 +12,29 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    Timer(const Duration(seconds: 3), () {
-      Navigator.of(context).pushReplacementNamed('/login');
-    });
-  }
+  // Timer tidak lagi dibutuhkan karena navigasi dikontrol oleh AuthChecker
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   Timer(const Duration(seconds: 3), () {
+  //     // PERBAIKAN: Cek apakah widget masih ada di tree sebelum navigasi
+  //     if (mounted) {
+  //        // Logika navigasi lama dipindahkan ke AuthChecker
+  //     }
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       backgroundColor: Colors.teal,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.map_outlined, size: 100, color: Colors.white),
-            const SizedBox(height: 20),
-            const Text(
+            Icon(Icons.shield_outlined, size: 100, color: Colors.white),
+            SizedBox(height: 20),
+            Text(
               'Tasik Siaga',
               style: TextStyle(
                 fontSize: 28,
@@ -37,16 +42,16 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 10),
-            const Text(
+            SizedBox(height: 10),
+            Text(
               'Peta Informasi Bencana Tasikmalaya',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.white70,
               ),
             ),
-            const SizedBox(height: 40),
-            const CircularProgressIndicator(
+            SizedBox(height: 40),
+            CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           ],
