@@ -32,7 +32,7 @@ dependencies:
     sdk: flutter
   flutter_map: ^6.1.0
   latlong2: ^0.9.0
-
+  
     # --- DEPENDENSI BARU DITAMBAHKAN DI SINI ---
   # Untuk state management (menangani status login admin)
   provider: ^6.1.2

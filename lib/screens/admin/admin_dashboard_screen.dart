@@ -18,7 +18,6 @@ class AdminDashboardScreen extends StatelessWidget {
             tooltip: 'Logout',
             onPressed: () async {
               await authService.logout();
-              // Kembali ke peta publik setelah logout
               Navigator.of(context).pushNamedAndRemoveUntil('/map', (route) => false);
             },
           ),
@@ -35,7 +34,7 @@ class AdminDashboardScreen extends StatelessWidget {
             icon: Icons.data_usage,
             label: 'Kelola Data Bencana',
             onTap: () {
-              // Navigasi ke halaman kelola data
+              Navigator.pushNamed(context, '/manage-disasters');
             },
           ),
           _buildDashboardItem(
@@ -43,7 +42,7 @@ class AdminDashboardScreen extends StatelessWidget {
             icon: Icons.verified_user,
             label: 'Verifikasi Laporan',
             onTap: () {
-              // Navigasi ke halaman verifikasi
+              Navigator.pushNamed(context, '/verification-list');
             },
           ),
           _buildDashboardItem(
@@ -51,7 +50,8 @@ class AdminDashboardScreen extends StatelessWidget {
             icon: Icons.add_circle,
             label: 'Tambah Data Baru',
             onTap: () {
-              // Navigasi ke halaman form tambah data
+              // INI BAGIAN YANG SEHARUSNYA BERFUNGSI
+              Navigator.pushNamed(context, '/disaster-form');
             },
           ),
           _buildDashboardItem(
@@ -59,7 +59,9 @@ class AdminDashboardScreen extends StatelessWidget {
             icon: Icons.bar_chart,
             label: 'Statistik',
             onTap: () {
-              // Navigasi ke halaman statistik
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Halaman Statistik belum tersedia.')),
+              );
             },
           ),
         ],
