@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
         '/map': (context) => const MapScreen(),
         '/login': (context) => const AdminLoginScreen(),
         '/dashboard': (context) => const AdminDashboardScreen(),
-        // '/manage-disasters': (context) => const ManageDisasterScreen(),
+        '/manage-disasters': (context) => const ManageDisastersScreen(),
         '/verification-list': (context) => const VerificationListScreen(),
         '/disaster-form': (context) => const DisasterFormScreen(),
       },
