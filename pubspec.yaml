@@ -34,6 +34,9 @@ dependencies:
   latlong2: ^0.9.0
   
     # --- DEPENDENSI BARU DITAMBAHKAN DI SINI ---
+  firebase_core: ^3.1.1
+  cloud_firestore: ^5.0.2 
+
   # Untuk state management (menangani status login admin)
   provider: ^6.1.2
   # Untuk komunikasi dengan API/server

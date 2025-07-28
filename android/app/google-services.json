@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "468386151754",
+    "project_id": "peta-bencana-3edd2",
+    "storage_bucket": "peta-bencana-3edd2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:468386151754:android:81240a9908afb86f32d5b3",
+        "android_client_info": {
+          "package_name": "com.example.tasik_siaga"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBp3nJbHhm5nIYWPj7sf_tMd_aWUdwcthU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

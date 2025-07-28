@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:tasik_siaga/firebase_options.dart';
+import 'package:tasik_siaga/screens/admin/admin_dashboard_screen.dart';
+import 'package:tasik_siaga/screens/admin/admin_login_screen.dart';
 import 'package:tasik_siaga/screens/admin/disaster_form_screen.dart';
 import 'package:tasik_siaga/screens/admin/manage_disasters_screen.dart';
 import 'package:tasik_siaga/screens/admin/verification_list_screen.dart';
-
-// Import semua layar
-import 'package:tasik_siaga/screens/splash_screen.dart';
 import 'package:tasik_siaga/screens/public/map_screen.dart';
-import 'package:tasik_siaga/screens/admin/admin_login_screen.dart';
-import 'package:tasik_siaga/screens/admin/admin_dashboard_screen.dart';
-import 'package:tasik_siaga/screens/public/report_form_screen.dart';
 import 'package:tasik_siaga/services/auth_service.dart';
 
-void main() {
+void main() async {
+  // Pastikan semua widget siap sebelum menjalankan kode async
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inisialisasi Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Jalankan aplikasi dengan provider untuk AuthService
   runApp(
     ChangeNotifierProvider(
       create: (context) => AuthService(),
@@ -27,34 +34,18 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Tasik Siaga: Peta Bencana',
+      title: 'Tasik Siaga',
       theme: ThemeData(
         primarySwatch: Colors.teal,
         visualDensity: VisualDensity.adaptivePlatformDensity,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.teal,
-          foregroundColor: Colors.white,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.teal,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-          ),
-        ),
       ),
-      debugShowCheckedModeBanner: false,
+      // AuthChecker akan menjadi halaman utama untuk memeriksa status login
       home: const AuthChecker(),
       routes: {
         '/map': (context) => const MapScreen(),
         '/login': (context) => const AdminLoginScreen(),
         '/dashboard': (context) => const AdminDashboardScreen(),
-
-        // Rute baru untuk admin
-        '/manage-disasters': (context) => const ManageDisastersScreen(),
+        // '/manage-disasters': (context) => const ManageDisasterScreen(),
         '/verification-list': (context) => const VerificationListScreen(),
         '/disaster-form': (context) => const DisasterFormScreen(),
       },
@@ -62,24 +53,29 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Widget ini akan memeriksa status login dan mengarahkan pengguna
 class AuthChecker extends StatelessWidget {
   const AuthChecker({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: Provider.of<AuthService>(context, listen: false).isLoggedIn(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SplashScreen();
-        } else {
-          if (snapshot.data == true) {
-            return const AdminDashboardScreen();
-          } else {
+    return Consumer<AuthService>(
+      builder: (context, authService, child) {
+        return FutureBuilder<bool>(
+          future: authService.isLoggedIn(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.data == true) {
+              // Jika sudah login, arahkan ke dashboard admin
+              return const AdminDashboardScreen();
+            }
+            // Jika tidak, arahkan ke peta publik
             return const MapScreen();
-          }
-        }
+          },
+        );
       },
     );
   }
