@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -33,35 +32,39 @@ class Disaster {
     this.imageUrl,
   });
 
-  // FUNGSI BARU: Mengubah data dari dokumen Firestore menjadi objek Disaster
-  factory Disaster.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    GeoPoint point = data['location'] as GeoPoint;
-    Timestamp timestamp = data['dateTime'] as Timestamp;
+  // Diubah dari fromFirestore menjadi fromMap
+  factory Disaster.fromMap(Map<String, dynamic> data) {
+    // Supabase mengembalikan 'point(longitude,latitude)'
+    // jadi kita perlu parsing manual.
+    final locationString = data['location'] as String;
+    final parts = locationString.replaceAll('(', '').replaceAll(')', '').split(',');
+    final lon = double.parse(parts[0]);
+    final lat = double.parse(parts[1]);
 
     return Disaster(
-      id: doc.id,
+      id: data['id'] as String,
       type: DisasterType.values.firstWhere(
         (e) => e.name == data['type'],
-        orElse: () => DisasterType.banjir, // Default value
+        orElse: () => DisasterType.banjir,
       ),
-      location: LatLng(point.latitude, point.longitude),
+      location: LatLng(lat, lon),
       district: data['district'] ?? '',
-      dateTime: timestamp.toDate(),
+      dateTime: DateTime.parse(data['date_time'] as String),
       description: data['description'] ?? '',
-      imageUrl: data['imageUrl'],
+      imageUrl: data['image_url'],
     );
   }
 
-  // FUNGSI BARU: Mengubah objek Disaster menjadi format Map untuk disimpan ke Firestore
-  Map<String, dynamic> toFirestore() {
+  // Diubah dari toFirestore menjadi toMap
+  Map<String, dynamic> toMap() {
     return {
       'type': type.name,
-      'location': GeoPoint(location.latitude, location.longitude),
+      // Untuk Supabase, kita kirim dalam format point
+      'location': 'POINT(${location.longitude},${location.latitude})',
       'district': district,
-      'dateTime': Timestamp.fromDate(dateTime),
+      'date_time': dateTime.toIso8601String(),
       'description': description,
-      'imageUrl': imageUrl,
+      'image_url': imageUrl,
     };
   }
 }

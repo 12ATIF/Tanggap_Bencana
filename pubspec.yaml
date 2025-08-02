@@ -33,16 +33,13 @@ dependencies:
   flutter_map: ^6.1.0
   latlong2: ^0.9.0
   
-    # --- DEPENDENSI BARU DITAMBAHKAN DI SINI ---
-  firebase_core: ^3.1.1
-  cloud_firestore: ^5.0.2 
+  # --- DEPENDENSI SUPABASE ---
+  supabase_flutter: ^2.0.0 # Ganti dengan versi terbaru
 
   # Untuk state management (menangani status login admin)
   provider: ^6.1.2
   # Untuk komunikasi dengan API/server
   http: ^1.2.1
-  # Untuk menyimpan sesi login admin di perangkat
-  shared_preferences: ^2.2.3
   # Untuk mendapatkan lokasi GPS pengguna
   geolocator: ^12.0.0
   # Untuk memilih gambar dari galeri atau kamera

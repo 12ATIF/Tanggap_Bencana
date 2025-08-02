@@ -31,10 +31,11 @@ class AdminDashboardScreen extends StatelessWidget {
         children: [
           _buildDashboardItem(
             context,
-            icon: Icons.data_usage,
-            label: 'Kelola Data Bencana',
+            icon: Icons.map, // Ganti ikon
+            label: 'Kembali ke Peta', // Ganti label
             onTap: () {
-              Navigator.pushNamed(context, '/manage-disasters');
+              // Kembali ke halaman peta
+              Navigator.of(context).pushNamedAndRemoveUntil('/map', (route) => false);
             },
           ),
           _buildDashboardItem(
@@ -47,11 +48,10 @@ class AdminDashboardScreen extends StatelessWidget {
           ),
           _buildDashboardItem(
             context,
-            icon: Icons.add_circle,
-            label: 'Tambah Data Baru',
+            icon: Icons.data_usage,
+            label: 'Kelola Data Bencana',
             onTap: () {
-              // INI BAGIAN YANG SEHARUSNYA BERFUNGSI
-              Navigator.pushNamed(context, '/disaster-form');
+              Navigator.pushNamed(context, '/manage-disasters');
             },
           ),
           _buildDashboardItem(
