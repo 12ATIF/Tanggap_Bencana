@@ -3,6 +3,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart'; // Import Provider
 import 'package:tasik_siaga/models/disaster_model.dart';
+import 'package:tasik_siaga/screens/admin/admin_dashboard_screen.dart';
+import 'package:tasik_siaga/screens/admin/admin_login_screen.dart';
 import 'package:tasik_siaga/screens/admin/disaster_form_screen.dart'; // Import form screen
 import 'package:tasik_siaga/services/auth_service.dart'; // Import auth service
 import 'package:tasik_siaga/services/disaster_service.dart';
@@ -15,10 +17,10 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  final LatLng _center = const LatLng(-6.3852, 106.9972); // Center di Jonggol
+  final LatLng _center = const LatLng(-7.330, 108.222);
   final DisasterService _disasterService = DisasterService();
   final MapController _mapController = MapController();
-  
+
   late Future<List<Disaster>> _disastersFuture;
 
   @override
@@ -37,7 +39,6 @@ class _MapScreenState extends State<MapScreen> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        // PERBAIKAN: Kirim parameter latitude dan longitude, bukan selectedPoint
         builder: (context) => DisasterFormScreen(
           latitude: tappedPoint.latitude,
           longitude: tappedPoint.longitude,
@@ -64,7 +65,7 @@ class _MapScreenState extends State<MapScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                disaster.type,
+                disaster.type.displayName,
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -73,7 +74,8 @@ class _MapScreenState extends State<MapScreen> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.location_city, size: 16, color: Colors.black54),
+                  const Icon(Icons.location_city,
+                      size: 16, color: Colors.black54),
                   const SizedBox(width: 4),
                   Text(
                     disaster.district,
@@ -84,7 +86,8 @@ class _MapScreenState extends State<MapScreen> {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 16, color: Colors.black54),
+                  const Icon(Icons.calendar_today,
+                      size: 16, color: Colors.black54),
                   const SizedBox(width: 4),
                   Text(
                     '${disaster.dateTime.day}/${disaster.dateTime.month}/${disaster.dateTime.year} - ${disaster.dateTime.hour}:${disaster.dateTime.minute.toString().padLeft(2, '0')}',
@@ -124,7 +127,8 @@ class _MapScreenState extends State<MapScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const AdminDashboardScreen()),
                 );
               },
             ),
@@ -136,7 +140,8 @@ class _MapScreenState extends State<MapScreen> {
           children: [
             const DrawerHeader(
               decoration: BoxDecoration(color: Colors.blue),
-              child: Text('Menu', style: TextStyle(color: Colors.white, fontSize: 24)),
+              child: Text('Menu',
+                  style: TextStyle(color: Colors.white, fontSize: 24)),
             ),
             ListTile(
               leading: const Icon(Icons.login),
@@ -145,7 +150,8 @@ class _MapScreenState extends State<MapScreen> {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const AdminLoginScreen()),
                 );
               },
             ),
@@ -166,14 +172,14 @@ class _MapScreenState extends State<MapScreen> {
             return Marker(
               width: 40.0,
               height: 40.0,
-              point: LatLng(disaster.latitude, disaster.longitude),
+              point: LatLng(disaster.location.latitude, disaster.location.longitude),
               child: GestureDetector(
                 onTap: () => _showDisasterDetails(context, disaster),
                 child: Tooltip(
-                  message: disaster.type,
-                  child: const Icon(
+                  message: disaster.type.displayName,
+                  child: Icon(
                     Icons.location_on,
-                    color: Colors.red,
+                    color: disaster.type.color,
                     size: 40.0,
                   ),
                 ),

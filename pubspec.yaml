@@ -34,7 +34,8 @@ dependencies:
   latlong2: ^0.9.0
   
   # --- DEPENDENSI SUPABASE ---
-  supabase_flutter: ^2.0.0 # Ganti dengan versi terbaru
+  supabase_flutter: ^2.5.0 # Ganti dengan versi terbaru
+  
 
   # Untuk state management (menangani status login admin)
   provider: ^6.1.2

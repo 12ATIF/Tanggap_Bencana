@@ -24,7 +24,7 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
   final _typeController = TextEditingController();
   final _districtController = TextEditingController();
   final _descriptionController = TextEditingController();
-  DateTime _selectedDate = DateTime.now();
+  final DateTime _selectedDate = DateTime.now();
 
   File? _imageFile;
   bool _isLoading = false;
@@ -132,10 +132,10 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
                     const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: _submitForm,
-                      child: const Text('Kirim Laporan'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
+                      child: const Text('Kirim Laporan'),
                     ),
                   ],
                 ),
