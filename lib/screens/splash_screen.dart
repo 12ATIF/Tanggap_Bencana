@@ -1,9 +1,6 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-// File ini sudah tidak digunakan lagi dalam alur AuthChecker,
-// tetapi diperbaiki untuk mencegah crash jika dipanggil di tempat lain.
-// Logika navigasi utama kini ditangani oleh AuthChecker di main.dart.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -12,48 +9,42 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  // Timer tidak lagi dibutuhkan karena navigasi dikontrol oleh AuthChecker
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   Timer(const Duration(seconds: 3), () {
-  //     // PERBAIKAN: Cek apakah widget masih ada di tree sebelum navigasi
-  //     if (mounted) {
-  //        // Logika navigasi lama dipindahkan ke AuthChecker
-  //     }
-  //   });
-  // }
+  @override
+  void initState() {
+    super.initState();
+    _redirect();
+  }
+
+  Future<void> _redirect() async {
+    // Tunggu frame pertama selesai di-render untuk menghindari transisi yang aneh
+    await Future.delayed(Duration.zero);
+
+    final session = Supabase.instance.client.auth.currentSession;
+    
+    // Cek apakah widget masih ada di tree sebelum navigasi
+    if (mounted) {
+      if (session != null) {
+        // Jika ada sesi (sudah login), langsung ke peta
+        Navigator.of(context).pushReplacementNamed('/map');
+      } else {
+        // Jika tidak ada sesi, tetap ke peta (sebagai publik)
+        Navigator.of(context).pushReplacementNamed('/map');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Colors.teal,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.shield_outlined, size: 100, color: Colors.white),
+            Icon(Icons.shield_outlined, size: 100, color: Colors.teal),
             SizedBox(height: 20),
-            Text(
-              'Tasik Siaga',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Peta Informasi Bencana Tasikmalaya',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-              ),
-            ),
+            Text('Tasik Siaga', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
             SizedBox(height: 40),
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
+            CircularProgressIndicator(),
           ],
         ),
       ),

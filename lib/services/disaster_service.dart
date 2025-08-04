@@ -1,53 +1,59 @@
 import 'dart:io';
+import 'package:tasik_siaga/main.dart'; // untuk mengakses `supabase`
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tasik_siaga/models/disaster_model.dart';
 
 class DisasterService {
-  final _supabase = Supabase.instance.client;
-
-  /// Mengambil semua data bencana DARI SUPABASE.
-  Future<List<Disaster>> getDisasters() async {
+  Future<void> addDisaster({
+    required String type,
+    required double latitude,
+    required double longitude,
+    required String district,
+    required DateTime dateTime,
+    required String description,
+    File? imageFile, // Terima file gambar yang bisa null
+  }) async {
     try {
-      final response = await _supabase.from('disasters').select().order('date_time', ascending: false);
-      // Konversi list of maps ke list of disasters
-      return response.map((item) => Disaster.fromMap(item)).toList();
-    } catch (e) {
-      print('Error mengambil data dari Supabase: $e');
-      return []; // Kembalikan list kosong jika terjadi error
-    }
-  }
+      String? imageUrl; // Variabel untuk menyimpan URL gambar
 
-  /// ---- FUNGSI BARU UNTUK UPLOAD GAMBAR ----
-  Future<String?> uploadImage(File imageFile) async {
-    try {
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}.${imageFile.path.split('.').last}';
-      
-      // Upload file ke bucket 'disaster_images'
-      await _supabase.storage.from('disaster_images').upload(
-        fileName,
-        imageFile,
-        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-      );
+      // 1. Proses Unggah Gambar (jika ada)
+      if (imageFile != null) {
+        // Buat nama file yang unik berdasarkan waktu saat ini.
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}.${imageFile.path.split('.').last}';
+        final filePath = 'public/$fileName'; // Path di dalam bucket
 
-      // Ambil URL publik dari file yang baru diupload
-      final publicUrl = _supabase.storage.from('disaster_images').getPublicUrl(fileName);
-      return publicUrl;
-    } catch (e) {
-      print('Error mengupload gambar: $e');
-      return null;
-    }
-  }
+        // Unggah file ke bucket 'disaster_images'
+        await supabase.storage.from('disasterimages').upload(
+              filePath,
+              imageFile,
+              fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+            );
 
-  /// Mengirim data bencana baru KE SUPABASE.
-  Future<bool> submitDisaster(Disaster newDisaster) async {
-    try {
-      // Konversi objek Disaster ke Map sebelum dikirim
-      await _supabase.from('disasters').insert(newDisaster.toMap());
-      print('Data baru berhasil ditambahkan ke Supabase');
-      return true;
+        // 2. Ambil URL publik dari gambar yang baru diunggah
+        imageUrl = supabase.storage.from('disasterimages').getPublicUrl(filePath);
+      }
+
+      // 3. Siapkan data untuk dimasukkan ke tabel
+      final dataToInsert = {
+        'type': type,
+        'latitude': latitude,
+        'longitude': longitude,
+        'district': district,
+        'date_time': dateTime.toIso8601String(),
+        'description': description,
+        'image_url': imageUrl, // Masukkan URL gambar (bisa null jika tidak ada gambar)
+      };
+
+      // 4. Masukkan data ke tabel 'disasters'
+      await supabase.from('disasters').insert(dataToInsert);
+
+    } on PostgrestException catch (error) {
+      // Tangani error spesifik dari Supabase/PostgreSQL
+      print('Error inserting data: ${error.message}');
+      throw Exception('Gagal menyimpan laporan: ${error.message}');
     } catch (e) {
-      print('Terjadi kesalahan saat menyimpan data ke Supabase: $e');
-      return false; // Mengembalikan false jika gagal
+      // Tangani error umum lainnya
+      print('An unexpected error occurred: $e');
+      throw Exception('Terjadi kesalahan yang tidak terduga.');
     }
   }
 }
