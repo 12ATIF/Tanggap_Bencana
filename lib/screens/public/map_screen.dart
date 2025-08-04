@@ -15,7 +15,7 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  final LatLng _center = const LatLng(-7.3278, 108.2203);
+  final LatLng _center = const LatLng(-6.3852, 106.9972); // Center di Jonggol
   final DisasterService _disasterService = DisasterService();
   final MapController _mapController = MapController();
   
@@ -33,17 +33,18 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  // Fungsi untuk navigasi ke form dan menangani hasilnya
   void _navigateToForm(LatLng tappedPoint) async {
-    // Navigasi ke form dan tunggu hasilnya
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => DisasterFormScreen(selectedPoint: tappedPoint),
+        // PERBAIKAN: Kirim parameter latitude dan longitude, bukan selectedPoint
+        builder: (context) => DisasterFormScreen(
+          latitude: tappedPoint.latitude,
+          longitude: tappedPoint.longitude,
+        ),
       ),
     );
 
-    // Jika hasilnya 'true' (artinya form berhasil disubmit), perbarui data di peta
     if (result == true) {
       _fetchDisasters();
     }
@@ -63,11 +64,10 @@ class _MapScreenState extends State<MapScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                disaster.type.displayName, // Menggunakan getter yang baru dibuat
-                style: TextStyle(
+                disaster.type,
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: disaster.type.color, // Menggunakan getter yang baru dibuat
                 ),
               ),
               const SizedBox(height: 8),
@@ -106,18 +106,28 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Menggunakan `Consumer` untuk mendapatkan status login
-    final authService = Provider.of<AuthService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tasik Siaga: Peta Bencana'),
+        title: const Text('Peta Bencana'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fetchDisasters,
             tooltip: 'Perbarui Data',
-          )
+          ),
+          if (authService.isAdminLoggedIn)
+            IconButton(
+              icon: const Icon(Icons.dashboard),
+              tooltip: 'Dashboard',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+                );
+              },
+            ),
         ],
       ),
       drawer: Drawer(
@@ -125,15 +135,18 @@ class _MapScreenState extends State<MapScreen> {
           padding: EdgeInsets.zero,
           children: [
             const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.teal),
+              decoration: BoxDecoration(color: Colors.blue),
               child: Text('Menu', style: TextStyle(color: Colors.white, fontSize: 24)),
             ),
             ListTile(
               leading: const Icon(Icons.login),
               title: const Text('Login Petugas'),
               onTap: () {
-                Navigator.pop(context); // Tutup drawer
-                Navigator.pushNamed(context, '/login');
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
+                );
               },
             ),
           ],
@@ -148,22 +161,19 @@ class _MapScreenState extends State<MapScreen> {
           if (snapshot.hasError) {
             return Center(child: Text('Gagal memuat data: ${snapshot.error}'));
           }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            // Tetap tampilkan peta kosong jika tidak ada data
-          }
-          
+
           List<Marker> markers = (snapshot.data ?? []).map((disaster) {
             return Marker(
               width: 40.0,
               height: 40.0,
-              point: disaster.location,
+              point: LatLng(disaster.latitude, disaster.longitude),
               child: GestureDetector(
                 onTap: () => _showDisasterDetails(context, disaster),
                 child: Tooltip(
-                  message: disaster.type.displayName,
-                  child: Icon(
+                  message: disaster.type,
+                  child: const Icon(
                     Icons.location_on,
-                    color: disaster.type.color,
+                    color: Colors.red,
                     size: 40.0,
                   ),
                 ),
@@ -176,11 +186,8 @@ class _MapScreenState extends State<MapScreen> {
             options: MapOptions(
               initialCenter: _center,
               initialZoom: 12.0,
-              // Menambahkan fungsi onTap
               onTap: (tapPosition, point) {
-                // Cek apakah admin sudah login
                 if (authService.isAdminLoggedIn) {
-                  // Jika ya, navigasi ke form
                   _navigateToForm(point);
                 }
               },
@@ -188,20 +195,18 @@ class _MapScreenState extends State<MapScreen> {
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.tasik_siaga',
               ),
               MarkerLayer(markers: markers),
             ],
           );
         },
       ),
-      // Menambahkan floating action button untuk info jika admin login
       floatingActionButton: authService.isAdminLoggedIn
           ? FloatingActionButton.extended(
               onPressed: () {},
               icon: const Icon(Icons.touch_app),
               label: const Text('Ketuk Peta untuk Lapor'),
-              backgroundColor: Colors.teal,
+              backgroundColor: Colors.blue,
             )
           : null,
     );

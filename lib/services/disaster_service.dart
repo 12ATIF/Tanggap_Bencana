@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:tasik_siaga/main.dart'; // untuk mengakses `supabase`
+import 'package:tasik_siaga/models/disaster_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DisasterService {

@@ -21,17 +21,14 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _disasterService = DisasterService();
 
-  // Controller untuk setiap input field
   final _typeController = TextEditingController();
   final _districtController = TextEditingController();
   final _descriptionController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
 
-  // State untuk menyimpan file gambar yang dipilih dan status loading
   File? _imageFile;
   bool _isLoading = false;
 
-  // Fungsi untuk membuka galeri dan memilih gambar
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -41,12 +38,10 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
     }
   }
 
-  // Fungsi untuk mengirim data formulir
   Future<void> _submitForm() async {
-    // Validasi form
     if (_formKey.currentState!.validate()) {
       setState(() {
-        _isLoading = true; // Tampilkan loading indicator
+        _isLoading = true;
       });
 
       try {
@@ -57,22 +52,20 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
           district: _districtController.text,
           dateTime: _selectedDate,
           description: _descriptionController.text,
-          imageFile: _imageFile, // Kirim file gambar ke service
+          imageFile: _imageFile,
         );
 
-        // Jika berhasil, tampilkan notifikasi dan kembali ke halaman sebelumnya
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Laporan berhasil ditambahkan!')),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true); // Kirim sinyal sukses
       } catch (e) {
-        // Jika gagal, tampilkan notifikasi error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gagal menambahkan laporan: $e')),
         );
       } finally {
         setState(() {
-          _isLoading = false; // Sembunyikan loading indicator
+          _isLoading = false;
         });
       }
     }
@@ -120,14 +113,12 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
                        validator: (value) => value!.isEmpty ? 'Deskripsi tidak boleh kosong' : null,
                     ),
                     const SizedBox(height: 24),
-                    // Bagian untuk memilih gambar
                     OutlinedButton.icon(
                       onPressed: _pickImage,
                       icon: const Icon(Icons.image),
                       label: const Text('Pilih Gambar'),
                     ),
                     const SizedBox(height: 12),
-                    // Menampilkan preview gambar yang dipilih
                     if (_imageFile != null)
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
