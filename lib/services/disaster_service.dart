@@ -1,23 +1,22 @@
+// lib/services/disaster_service.dart
+
 import 'dart:io';
-import 'package:tasik_siaga/main.dart'; // untuk mengakses `supabase`
+import 'package:tasik_siaga/main.dart';
 import 'package:tasik_siaga/models/disaster_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DisasterService {
   Future<List<Disaster>> getDisasters() async {
     try {
-      // Menggunakan variabel 'supabase' (huruf kecil)
+      // Hapus <...> dari .select() untuk versi Supabase terbaru
       final response = await supabase.from('disasters').select();
-      final disasters = (response as List)
-          .map((data) => Disaster.fromMap(data))
-          .toList();
+      
+      final disasters = response.map((data) => Disaster.fromMap(data)).toList();
       return disasters;
-    } on PostgrestException catch (error) {
-      print('Error fetching data: ${error.message}');
-      throw Exception('Gagal mengambil data bencana: ${error.message}');
     } catch (e) {
-      print('An unexpected error occurred: $e');
-      throw Exception('Terjadi kesalahan yang tidak terduga.');
+      // Menangkap error untuk debugging jika terjadi masalah
+      print('Error fetching disasters: $e');
+      throw Exception('Gagal memuat data bencana.');
     }
   }
 
@@ -32,19 +31,16 @@ class DisasterService {
   }) async {
     try {
       String? imageUrl;
-
       if (imageFile != null) {
         final fileName = '${DateTime.now().millisecondsSinceEpoch}.${imageFile.path.split('.').last}';
         final filePath = 'public/$fileName';
 
-        // Menggunakan variabel 'supabase' (huruf kecil)
         await supabase.storage.from('disasterimages').upload(
               filePath,
               imageFile,
               fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
             );
-        
-        // Menggunakan variabel 'supabase' (huruf kecil)
+            
         imageUrl = supabase.storage.from('disasterimages').getPublicUrl(filePath);
       }
 
@@ -58,15 +54,11 @@ class DisasterService {
         'image_url': imageUrl,
       };
       
-      // Menggunakan variabel 'supabase' (huruf kecil)
       await supabase.from('disasters').insert(dataToInsert);
 
-    } on PostgrestException catch (error) {
-      print('Error inserting data: ${error.message}');
-      throw Exception('Gagal menyimpan laporan: ${error.message}');
     } catch (e) {
-      print('An unexpected error occurred: $e');
-      throw Exception('Terjadi kesalahan yang tidak terduga.');
+      print('Error adding disaster: $e');
+      throw Exception('Gagal menambahkan laporan.');
     }
   }
 }

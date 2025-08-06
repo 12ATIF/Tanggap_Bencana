@@ -1,3 +1,5 @@
+// lib/models/disaster_model.dart
+
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -32,14 +34,18 @@ class Disaster {
     this.imageUrl,
   });
 
-  // Diubah dari fromFirestore menjadi fromMap
+  // ================================================================
+  // >> PERBAIKAN UTAMA DI SINI <<
+  // Membaca 'latitude' dan 'longitude' sebagai double, bukan string.
+  // ================================================================
   factory Disaster.fromMap(Map<String, dynamic> data) {
     return Disaster(
-      id: data['id'] as String,
+      id: data['id'].toString(), // Konversi ke String untuk keamanan
       type: DisasterType.values.firstWhere(
         (e) => e.name == data['type'],
-        orElse: () => DisasterType.banjir,
+        orElse: () => DisasterType.banjir, // Default jika tipe tidak ditemukan
       ),
+      // Ambil latitude dan longitude langsung dari data sebagai double
       location: LatLng(data['latitude'] as double, data['longitude'] as double),
       district: data['district'] ?? '',
       dateTime: DateTime.parse(data['date_time'] as String),
@@ -48,7 +54,6 @@ class Disaster {
     );
   }
 
-  // Diubah dari toFirestore menjadi toMap
   Map<String, dynamic> toMap() {
     return {
       'type': type.name,

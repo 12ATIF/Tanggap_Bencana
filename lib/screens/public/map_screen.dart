@@ -1,12 +1,12 @@
+// lib/screens/public/map_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:provider/provider.dart'; // Import Provider
+import 'package:provider/provider.dart';
 import 'package:tasik_siaga/models/disaster_model.dart';
-import 'package:tasik_siaga/screens/admin/admin_dashboard_screen.dart';
-import 'package:tasik_siaga/screens/admin/admin_login_screen.dart';
-import 'package:tasik_siaga/screens/admin/disaster_form_screen.dart'; // Import form screen
-import 'package:tasik_siaga/services/auth_service.dart'; // Import auth service
+import 'package:tasik_siaga/screens/admin/disaster_form_screen.dart';
+import 'package:tasik_siaga/services/auth_service.dart';
 import 'package:tasik_siaga/services/disaster_service.dart';
 
 class MapScreen extends StatefulWidget {
@@ -20,7 +20,7 @@ class _MapScreenState extends State<MapScreen> {
   final LatLng _center = const LatLng(-7.330, 108.222);
   final DisasterService _disasterService = DisasterService();
   final MapController _mapController = MapController();
-
+  
   late Future<List<Disaster>> _disastersFuture;
 
   @override
@@ -66,16 +66,16 @@ class _MapScreenState extends State<MapScreen> {
             children: [
               Text(
                 disaster.type.displayName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
+                  color: disaster.type.color,
                 ),
               ),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.location_city,
-                      size: 16, color: Colors.black54),
+                  const Icon(Icons.location_city, size: 16, color: Colors.black54),
                   const SizedBox(width: 4),
                   Text(
                     disaster.district,
@@ -86,8 +86,7 @@ class _MapScreenState extends State<MapScreen> {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today,
-                      size: 16, color: Colors.black54),
+                  const Icon(Icons.calendar_today, size: 16, color: Colors.black54),
                   const SizedBox(width: 4),
                   Text(
                     '${disaster.dateTime.day}/${disaster.dateTime.month}/${disaster.dateTime.year} - ${disaster.dateTime.hour}:${disaster.dateTime.minute.toString().padLeft(2, '0')}',
@@ -113,7 +112,7 @@ class _MapScreenState extends State<MapScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Peta Bencana'),
+        title: const Text('Peta Bencana Tasikmalaya'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -124,13 +123,7 @@ class _MapScreenState extends State<MapScreen> {
             IconButton(
               icon: const Icon(Icons.dashboard),
               tooltip: 'Dashboard',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const AdminDashboardScreen()),
-                );
-              },
+              onPressed: () => Navigator.of(context).pushNamed('/dashboard'),
             ),
         ],
       ),
@@ -139,20 +132,15 @@ class _MapScreenState extends State<MapScreen> {
           padding: EdgeInsets.zero,
           children: [
             const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue),
-              child: Text('Menu',
-                  style: TextStyle(color: Colors.white, fontSize: 24)),
+              decoration: BoxDecoration(color: Colors.teal),
+              child: Text('Menu', style: TextStyle(color: Colors.white, fontSize: 24)),
             ),
             ListTile(
               leading: const Icon(Icons.login),
               title: const Text('Login Petugas'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const AdminLoginScreen()),
-                );
+                Navigator.of(context).pushNamed('/login');
               },
             ),
           ],
@@ -168,11 +156,12 @@ class _MapScreenState extends State<MapScreen> {
             return Center(child: Text('Gagal memuat data: ${snapshot.error}'));
           }
 
-          List<Marker> markers = (snapshot.data ?? []).map((disaster) {
+          final disasters = snapshot.data ?? [];
+          final markers = disasters.map((disaster) {
             return Marker(
               width: 40.0,
               height: 40.0,
-              point: LatLng(disaster.location.latitude, disaster.location.longitude),
+              point: disaster.location,
               child: GestureDetector(
                 onTap: () => _showDisasterDetails(context, disaster),
                 child: Tooltip(
@@ -209,10 +198,15 @@ class _MapScreenState extends State<MapScreen> {
       ),
       floatingActionButton: authService.isAdminLoggedIn
           ? FloatingActionButton.extended(
-              onPressed: () {},
-              icon: const Icon(Icons.touch_app),
-              label: const Text('Ketuk Peta untuk Lapor'),
-              backgroundColor: Colors.blue,
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Ketuk lokasi di peta untuk menambahkan laporan.'),
+                ));
+              },
+              icon: const Icon(Icons.add_location_alt_outlined),
+              label: const Text('Tambah Laporan'),
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
             )
           : null,
     );

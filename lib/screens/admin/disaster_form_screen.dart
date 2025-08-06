@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:tasik_siaga/models/disaster_model.dart';
 import 'package:tasik_siaga/services/disaster_service.dart';
 
 class DisasterFormScreen extends StatefulWidget {
@@ -14,18 +15,16 @@ class DisasterFormScreen extends StatefulWidget {
   });
 
   @override
-  _DisasterFormScreenState createState() => _DisasterFormScreenState();
+  State<DisasterFormScreen> createState() => _DisasterFormScreenState();
 }
 
 class _DisasterFormScreenState extends State<DisasterFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _disasterService = DisasterService();
 
-  final _typeController = TextEditingController();
+  DisasterType? _selectedType;
   final _districtController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final DateTime _selectedDate = DateTime.now();
-
   File? _imageFile;
   bool _isLoading = false;
 
@@ -39,31 +38,46 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
   }
 
   Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-      try {
-        await _disasterService.addDisaster(
-          type: _typeController.text,
-          latitude: widget.latitude,
-          longitude: widget.longitude,
-          district: _districtController.text,
-          dateTime: _selectedDate,
-          description: _descriptionController.text,
-          imageFile: _imageFile,
-        );
+    setState(() {
+      _isLoading = true;
+    });
 
+    try {
+      await _disasterService.addDisaster(
+        type: _selectedType!.name,
+        latitude: widget.latitude,
+        longitude: widget.longitude,
+        district: _districtController.text,
+        description: _descriptionController.text,
+        dateTime: DateTime.now(),
+        imageFile: _imageFile,
+      );
+      
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Laporan berhasil ditambahkan!')),
+          const SnackBar(
+            content: Text('Laporan bencana berhasil dikirim!'),
+            backgroundColor: Colors.green,
+          ),
         );
-        Navigator.of(context).pop(true); // Kirim sinyal sukses
-      } catch (e) {
+        Navigator.of(context).pop(true); // Kirim 'true' sebagai sinyal sukses
+      }
+
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menambahkan laporan: $e')),
+          SnackBar(
+            content: Text('Gagal mengirim laporan: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
-      } finally {
+      }
+    } finally {
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });
@@ -73,7 +87,6 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
 
   @override
   void dispose() {
-    _typeController.dispose();
     _districtController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -82,65 +95,90 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Form Laporan Bencana')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('Lokasi: ${widget.latitude.toStringAsFixed(5)}, ${widget.longitude.toStringAsFixed(5)}'),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _typeController,
-                      decoration: const InputDecoration(labelText: 'Jenis Bencana (e.g., Banjir, Longsor)'),
-                      validator: (value) => value!.isEmpty ? 'Jenis bencana tidak boleh kosong' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _districtController,
-                      decoration: const InputDecoration(labelText: 'Kecamatan'),
-                       validator: (value) => value!.isEmpty ? 'Kecamatan tidak boleh kosong' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _descriptionController,
-                      decoration: const InputDecoration(labelText: 'Deskripsi Singkat'),
-                      maxLines: 3,
-                       validator: (value) => value!.isEmpty ? 'Deskripsi tidak boleh kosong' : null,
-                    ),
-                    const SizedBox(height: 24),
-                    OutlinedButton.icon(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.image),
-                      label: const Text('Pilih Gambar'),
-                    ),
-                    const SizedBox(height: 12),
-                    if (_imageFile != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.file(
-                          _imageFile!,
-                          height: 200,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
+      appBar: AppBar(
+        title: const Text('Form Laporan Bencana'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              Text(
+                'Lokasi: ${widget.latitude.toStringAsFixed(5)}, ${widget.longitude.toStringAsFixed(5)}',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<DisasterType>(
+                value: _selectedType,
+                decoration: const InputDecoration(
+                  labelText: 'Jenis Bencana',
+                  border: OutlineInputBorder(),
+                ),
+                items: DisasterType.values.map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(type.displayName),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedType = value;
+                  });
+                },
+                validator: (value) => value == null ? 'Jenis bencana harus dipilih' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _districtController,
+                decoration: const InputDecoration(
+                  labelText: 'Kecamatan',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) => value == null || value.isEmpty ? 'Kecamatan harus diisi' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Deskripsi Kejadian',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 4,
+                validator: (value) => value == null || value.isEmpty ? 'Deskripsi harus diisi' : null,
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _pickImage,
+                icon: const Icon(Icons.image),
+                label: Text(_imageFile == null ? 'Pilih Gambar (Opsional)' : 'Ganti Gambar'),
+              ),
+              const SizedBox(height: 12),
+              if (_imageFile != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.file(
+                    _imageFile!,
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              const SizedBox(height: 24),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton.icon(
                       onPressed: _submitForm,
+                      icon: const Icon(Icons.send),
+                      label: const Text('Kirim Laporan'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text('Kirim Laporan'),
                     ),
-                  ],
-                ),
-              ),
-            ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
