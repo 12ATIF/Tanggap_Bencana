@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tasik_siaga/models/disaster_model.dart';
 import 'package:tasik_siaga/services/disaster_service.dart';
+import 'package:geocoding/geocoding.dart'; // <-- 1. Import package geocoding
 
 class DisasterFormScreen extends StatefulWidget {
   final double latitude;
@@ -27,6 +28,52 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
   final _descriptionController = TextEditingController();
   File? _imageFile;
   bool _isLoading = false;
+  bool _isGeocoding = true; // <-- 2. State untuk loading pencarian alamat
+
+  @override
+  void initState() {
+    super.initState();
+    // 3. Panggil fungsi untuk mencari alamat saat halaman dibuka
+    _getAddressFromCoordinates();
+  }
+
+  /// Mengambil alamat dari koordinat (Reverse Geocoding)
+  Future<void> _getAddressFromCoordinates() async {
+    try {
+      // Menggunakan package geocoding untuk mencari placemark (detail alamat)
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        widget.latitude,
+        widget.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        final placemark = placemarks.first;
+        // Kita isi field Kecamatan dari data 'subLocality' atau 'locality'
+        // Anda bisa menyesuaikan ini dengan data lain jika perlu
+        final district = placemark.subLocality ?? placemark.locality ?? 'Tidak Ditemukan';
+        
+        // Buat alamat lengkap untuk deskripsi awal
+        final fullAddress = "${placemark.street}, ${placemark.subLocality}, ${placemark.locality}, ${placemark.subAdministrativeArea}";
+
+        setState(() {
+          _districtController.text = district;
+          // Kita juga bisa memberikan deskripsi awal
+          _descriptionController.text = "Telah terjadi bencana di sekitar $fullAddress.";
+        });
+      }
+    } catch (e) {
+      print("Error saat mencari alamat: $e");
+      // Jika gagal, set default text
+      setState(() {
+         _districtController.text = "Gagal mendapatkan nama kecamatan";
+      });
+    } finally {
+      // Hentikan loading setelah selesai
+      setState(() {
+        _isGeocoding = false;
+      });
+    }
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -41,11 +88,7 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() { _isLoading = true; });
     try {
       await _disasterService.addDisaster(
         type: _selectedType!.name,
@@ -56,7 +99,6 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
         dateTime: DateTime.now(),
         imageFile: _imageFile,
       );
-      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -64,9 +106,8 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.of(context).pop(true); // Kirim 'true' sebagai sinyal sukses
+        Navigator.of(context).pop(true);
       }
-
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -77,11 +118,7 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) { setState(() { _isLoading = false; }); }
     }
   }
 
@@ -122,18 +159,22 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
                   );
                 }).toList(),
                 onChanged: (value) {
-                  setState(() {
-                    _selectedType = value;
-                  });
+                  setState(() { _selectedType = value; });
                 },
                 validator: (value) => value == null ? 'Jenis bencana harus dipilih' : null,
               ),
               const SizedBox(height: 16),
+              // 4. Perbarui TextFormField untuk Kecamatan
               TextFormField(
                 controller: _districtController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Kecamatan',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  // Tampilkan loading indicator saat alamat sedang dicari
+                  suffixIcon: _isGeocoding ? const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: CircularProgressIndicator(),
+                  ) : null,
                 ),
                 validator: (value) => value == null || value.isEmpty ? 'Kecamatan harus diisi' : null,
               ),
