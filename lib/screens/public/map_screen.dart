@@ -1,5 +1,3 @@
-// lib/screens/public/map_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -51,9 +49,11 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  // --- PERUBAHAN UTAMA DI FUNGSI INI ---
   void _showDisasterDetails(BuildContext context, Disaster disaster) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true, // Agar bottom sheet bisa lebih tinggi
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -64,23 +64,17 @@ class _MapScreenState extends State<MapScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Bagian informasi teks (tidak berubah)
               Text(
                 disaster.type.displayName,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: disaster.type.color,
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: disaster.type.color),
               ),
               const SizedBox(height: 8),
               Row(
                 children: [
                   const Icon(Icons.location_city, size: 16, color: Colors.black54),
                   const SizedBox(width: 4),
-                  Text(
-                    disaster.district,
-                    style: const TextStyle(fontSize: 16, color: Colors.black54),
-                  ),
+                  Text(disaster.district, style: const TextStyle(fontSize: 16, color: Colors.black54)),
                 ],
               ),
               const SizedBox(height: 4),
@@ -95,10 +89,55 @@ class _MapScreenState extends State<MapScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              Text(
-                disaster.description,
-                style: const TextStyle(fontSize: 16),
-              ),
+              Text(disaster.description, style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 16),
+
+              // --- BAGIAN BARU UNTUK MENAMPILKAN GAMBAR ---
+              if (disaster.imageUrls.isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Dokumentasi Foto:",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 100, // Tentukan tinggi area gambar
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: disaster.imageUrls.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                disaster.imageUrls[index],
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                                // Tampilkan loading indicator saat gambar dimuat
+                                loadingBuilder: (context, child, progress) {
+                                  return progress == null ? child : const Center(child: CircularProgressIndicator());
+                                },
+                                // Tampilkan ikon error jika gambar gagal dimuat
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 100,
+                                    height: 100,
+                                    color: Colors.grey[200],
+                                    child: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         );
@@ -109,7 +148,6 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Peta Bencana Tasikmalaya'),
@@ -155,7 +193,6 @@ class _MapScreenState extends State<MapScreen> {
           if (snapshot.hasError) {
             return Center(child: Text('Gagal memuat data: ${snapshot.error}'));
           }
-
           final disasters = snapshot.data ?? [];
           final markers = disasters.map((disaster) {
             return Marker(
@@ -175,7 +212,6 @@ class _MapScreenState extends State<MapScreen> {
               ),
             );
           }).toList();
-
           return FlutterMap(
             mapController: _mapController,
             options: MapOptions(

@@ -1,5 +1,3 @@
-// lib/models/disaster_model.dart
-
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -22,7 +20,8 @@ class Disaster {
   final String district;
   final DateTime dateTime;
   final String description;
-  final String? imageUrl;
+  // --- PERUBAHAN 1: Ubah dari String? menjadi List<String> ---
+  final List<String> imageUrls;
 
   Disaster({
     required this.id,
@@ -31,28 +30,32 @@ class Disaster {
     required this.district,
     required this.dateTime,
     required this.description,
-    this.imageUrl,
+    this.imageUrls = const [], // Defaultnya adalah list kosong
   });
 
-  // ================================================================
-  // >> PERBAIKAN UTAMA DI SINI <<
-  // Membaca 'latitude' dan 'longitude' sebagai double, bukan string.
-  // ================================================================
   factory Disaster.fromMap(Map<String, dynamic> data) {
+    // --- PERUBAHAN 2: Konversi data 'image_url' dari database ---
+    // Supabase mengembalikan array sebagai List<dynamic>, kita perlu konversi
+    final imageUrlData = data['image_urls'];
+    List<String> urls = [];
+    if (imageUrlData is List) {
+      urls = imageUrlData.map((item) => item.toString()).toList();
+    }
+
     return Disaster(
-      id: data['id'].toString(), // Konversi ke String untuk keamanan
+      id: data['id'].toString(),
       type: DisasterType.values.firstWhere(
         (e) => e.name == data['type'],
-        orElse: () => DisasterType.banjir, // Default jika tipe tidak ditemukan
+        orElse: () => DisasterType.banjir,
       ),
-      // Ambil latitude dan longitude langsung dari data sebagai double
       location: LatLng(data['latitude'] as double, data['longitude'] as double),
       district: data['district'] ?? '',
       dateTime: DateTime.parse(data['date_time'] as String),
       description: data['description'] ?? '',
-      imageUrl: data['image_url'],
+      imageUrls: urls, // Gunakan list yang sudah dikonversi
     );
   }
+
 
   Map<String, dynamic> toMap() {
     return {
@@ -62,7 +65,7 @@ class Disaster {
       'district': district,
       'date_time': dateTime.toIso8601String(),
       'description': description,
-      'image_url': imageUrl,
+      'image_url': imageUrls,
     };
   }
 }

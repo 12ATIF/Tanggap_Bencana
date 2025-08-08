@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tasik_siaga/models/disaster_model.dart';
 import 'package:tasik_siaga/services/disaster_service.dart';
-import 'package:geocoding/geocoding.dart'; // <-- 1. Import package geocoding
+import 'package:geocoding/geocoding.dart';
 
 class DisasterFormScreen extends StatefulWidget {
   final double latitude;
@@ -22,72 +22,64 @@ class DisasterFormScreen extends StatefulWidget {
 class _DisasterFormScreenState extends State<DisasterFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _disasterService = DisasterService();
+  final _picker = ImagePicker();
 
   DisasterType? _selectedType;
   final _districtController = TextEditingController();
   final _descriptionController = TextEditingController();
-  File? _imageFile;
+  
+  List<File> _imageFiles = [];
   bool _isLoading = false;
-  bool _isGeocoding = true; // <-- 2. State untuk loading pencarian alamat
+  bool _isGeocoding = true;
 
   @override
   void initState() {
     super.initState();
-    // 3. Panggil fungsi untuk mencari alamat saat halaman dibuka
     _getAddressFromCoordinates();
   }
 
-  /// Mengambil alamat dari koordinat (Reverse Geocoding)
   Future<void> _getAddressFromCoordinates() async {
     try {
-      // Menggunakan package geocoding untuk mencari placemark (detail alamat)
       List<Placemark> placemarks = await placemarkFromCoordinates(
         widget.latitude,
         widget.longitude,
       );
-
-      if (placemarks.isNotEmpty) {
-        final placemark = placemarks.first;
-        // Kita isi field Kecamatan dari data 'subLocality' atau 'locality'
-        // Anda bisa menyesuaikan ini dengan data lain jika perlu
-        final district = placemark.subLocality ?? placemark.locality ?? 'Tidak Ditemukan';
-        
-        // Buat alamat lengkap untuk deskripsi awal
-        final fullAddress = "${placemark.street}, ${placemark.subLocality}, ${placemark.locality}, ${placemark.subAdministrativeArea}";
-
+      if (mounted && placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        final district = p.subLocality ?? p.locality ?? 'Lokasi tidak dikenal';
+        final fullAddress = "${p.street ?? ''}, ${p.subLocality ?? ''}, ${p.locality ?? ''}";
         setState(() {
           _districtController.text = district;
-          // Kita juga bisa memberikan deskripsi awal
-          _descriptionController.text = "Telah terjadi bencana di sekitar $fullAddress.";
+          _descriptionController.text = "Telah terjadi bencana di sekitar area $fullAddress.";
         });
       }
     } catch (e) {
       print("Error saat mencari alamat: $e");
-      // Jika gagal, set default text
-      setState(() {
-         _districtController.text = "Gagal mendapatkan nama kecamatan";
-      });
+      if (mounted) {
+        setState(() {
+          _districtController.text = "Gagal mendapatkan nama lokasi";
+        });
+      }
     } finally {
-      // Hentikan loading setelah selesai
-      setState(() {
-        _isGeocoding = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isGeocoding = false;
+        });
+      }
     }
   }
 
-  Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
+  Future<void> _pickMultiImage() async {
+    final List<XFile> pickedFiles = await _picker.pickMultiImage();
+    if (pickedFiles.isNotEmpty) {
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _imageFiles = pickedFiles.map((xfile) => File(xfile.path)).toList();
       });
     }
   }
 
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
     setState(() { _isLoading = true; });
     try {
       await _disasterService.addDisaster(
@@ -97,31 +89,25 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
         district: _districtController.text,
         description: _descriptionController.text,
         dateTime: DateTime.now(),
-        imageFile: _imageFile,
+        imageFiles: _imageFiles, // Sekarang parameter ini sudah dikenali
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Laporan bencana berhasil dikirim!'),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text('Laporan berhasil ditambahkan!'), backgroundColor: Colors.green),
         );
         Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengirim laporan: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Gagal menambahkan laporan: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
       if (mounted) { setState(() { _isLoading = false; }); }
     }
   }
-
+  
   @override
   void dispose() {
     _districtController.dispose();
@@ -132,9 +118,7 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Form Laporan Bencana'),
-      ),
+      appBar: AppBar(title: const Text('Form Laporan Bencana')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -148,62 +132,59 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<DisasterType>(
                 value: _selectedType,
-                decoration: const InputDecoration(
-                  labelText: 'Jenis Bencana',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(labelText: 'Jenis Bencana', border: OutlineInputBorder()),
                 items: DisasterType.values.map((type) {
-                  return DropdownMenuItem(
-                    value: type,
-                    child: Text(type.displayName),
-                  );
+                  return DropdownMenuItem(value: type, child: Text(type.displayName));
                 }).toList(),
-                onChanged: (value) {
-                  setState(() { _selectedType = value; });
-                },
+                onChanged: (value) => setState(() => _selectedType = value),
                 validator: (value) => value == null ? 'Jenis bencana harus dipilih' : null,
               ),
               const SizedBox(height: 16),
-              // 4. Perbarui TextFormField untuk Kecamatan
               TextFormField(
                 controller: _districtController,
                 decoration: InputDecoration(
                   labelText: 'Kecamatan',
                   border: const OutlineInputBorder(),
-                  // Tampilkan loading indicator saat alamat sedang dicari
                   suffixIcon: _isGeocoding ? const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: CircularProgressIndicator(),
+                    padding: EdgeInsets.all(10.0),
+                    child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2.0)),
                   ) : null,
                 ),
+                readOnly: _isGeocoding,
                 validator: (value) => value == null || value.isEmpty ? 'Kecamatan harus diisi' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Deskripsi Kejadian',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(labelText: 'Deskripsi Kejadian', border: OutlineInputBorder()),
                 maxLines: 4,
                 validator: (value) => value == null || value.isEmpty ? 'Deskripsi harus diisi' : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
+              const Text("Dokumentasi Foto", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.image),
-                label: Text(_imageFile == null ? 'Pilih Gambar (Opsional)' : 'Ganti Gambar'),
+                onPressed: _pickMultiImage,
+                icon: const Icon(Icons.add_a_photo_outlined),
+                label: const Text('Pilih Beberapa Gambar'),
               ),
               const SizedBox(height: 12),
-              if (_imageFile != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.file(
-                    _imageFile!,
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
+              if (_imageFiles.isNotEmpty)
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
                   ),
+                  itemCount: _imageFiles.length,
+                  itemBuilder: (context, index) {
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(_imageFiles[index], fit: BoxFit.cover),
+                    );
+                  },
                 ),
               const SizedBox(height: 24),
               _isLoading
@@ -212,9 +193,7 @@ class _DisasterFormScreenState extends State<DisasterFormScreen> {
                       onPressed: _submitForm,
                       icon: const Icon(Icons.send),
                       label: const Text('Kirim Laporan'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
+                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                     ),
             ],
           ),

@@ -1,5 +1,3 @@
-// lib/services/disaster_service.dart
-
 import 'dart:io';
 import 'package:tasik_siaga/main.dart';
 import 'package:tasik_siaga/models/disaster_model.dart';
@@ -8,13 +6,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class DisasterService {
   Future<List<Disaster>> getDisasters() async {
     try {
-      // Hapus <...> dari .select() untuk versi Supabase terbaru
       final response = await supabase.from('disasters').select();
-      
       final disasters = response.map((data) => Disaster.fromMap(data)).toList();
       return disasters;
     } catch (e) {
-      // Menangkap error untuk debugging jika terjadi masalah
       print('Error fetching disasters: $e');
       throw Exception('Gagal memuat data bencana.');
     }
@@ -27,21 +22,28 @@ class DisasterService {
     required String district,
     required DateTime dateTime,
     required String description,
-    File? imageFile,
+    // --- PERUBAHAN UTAMA DI SINI ---
+    // Terima List<File>, bukan lagi satu File
+    List<File>? imageFiles,
   }) async {
     try {
-      String? imageUrl;
-      if (imageFile != null) {
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}.${imageFile.path.split('.').last}';
-        final filePath = 'public/$fileName';
+      List<String> imageUrls = [];
 
-        await supabase.storage.from('disasterimages').upload(
-              filePath,
-              imageFile,
-              fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-            );
-            
-        imageUrl = supabase.storage.from('disasterimages').getPublicUrl(filePath);
+      // Lakukan perulangan untuk mengunggah setiap file jika ada
+      if (imageFiles != null && imageFiles.isNotEmpty) {
+        for (var file in imageFiles) {
+          final fileName = '${DateTime.now().millisecondsSinceEpoch}-${file.path.split('/').last}';
+          final filePath = 'public/$fileName';
+
+          await supabase.storage.from('disasterimages').upload(
+                filePath,
+                file,
+                fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+              );
+              
+          final imageUrl = supabase.storage.from('disasterimages').getPublicUrl(filePath);
+          imageUrls.add(imageUrl);
+        }
       }
 
       final dataToInsert = {
@@ -51,7 +53,8 @@ class DisasterService {
         'district': district,
         'date_time': dateTime.toIso8601String(),
         'description': description,
-        'image_url': imageUrl,
+        // Kirim list URL ke Supabase (nama kolom harus sama dengan di database: 'image_urls')
+        'image_urls': imageUrls,
       };
       
       await supabase.from('disasters').insert(dataToInsert);
