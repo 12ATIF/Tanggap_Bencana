@@ -6,6 +6,7 @@ import 'package:tasik_siaga/models/disaster_model.dart';
 import 'package:tasik_siaga/screens/admin/disaster_form_screen.dart';
 import 'package:tasik_siaga/services/auth_service.dart';
 import 'package:tasik_siaga/services/disaster_service.dart';
+import 'package:geocoding/geocoding.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -48,105 +49,167 @@ class _MapScreenState extends State<MapScreen> {
       _fetchDisasters();
     }
   }
-
-  // --- PERUBAHAN UTAMA DI FUNGSI INI ---
+  
+  // --- FUNGSI TAMPILAN DETAIL LOKASI YANG DIROMBAK TOTAL ---
   void _showDisasterDetails(BuildContext context, Disaster disaster) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Agar bottom sheet bisa lebih tinggi
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      isScrollControlled: true, // Penting agar bisa fullscreen
+      backgroundColor: Colors.transparent, // Membuat latar belakang transparan
       builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Bagian informasi teks (tidak berubah)
-              Text(
-                disaster.type.displayName,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: disaster.type.color),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.location_city, size: 16, color: Colors.black54),
-                  const SizedBox(width: 4),
-                  Text(disaster.district, style: const TextStyle(fontSize: 16, color: Colors.black54)),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today, size: 16, color: Colors.black54),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${disaster.dateTime.day}/${disaster.dateTime.month}/${disaster.dateTime.year} - ${disaster.dateTime.hour}:${disaster.dateTime.minute.toString().padLeft(2, '0')}',
-                    style: const TextStyle(fontSize: 16, color: Colors.black54),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(disaster.description, style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 16),
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6, // Tampilan awal 60%
+          minChildSize: 0.4,     // Minimal 40%
+          maxChildSize: 0.9,     // Maksimal 90%
+          builder: (_, controller) {
+            String fullAddress = 'Memuat alamat...';
 
-              // --- BAGIAN BARU UNTUK MENAMPILKAN GAMBAR ---
-              if (disaster.imageUrls.isNotEmpty)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Dokumentasi Foto:",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 100, // Tentukan tinggi area gambar
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: disaster.imageUrls.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                disaster.imageUrls[index],
-                                width: 100,
-                                height: 100,
+            // Menggunakan StatefulBuilder untuk update alamat
+            return StatefulBuilder(
+              builder: (BuildContext context, StateSetter setModalState) {
+                // Fungsi untuk mengambil alamat dari koordinat
+                Future<void> getAddress() async {
+                  try {
+                    List<Placemark> placemarks = await placemarkFromCoordinates(
+                      disaster.location.latitude,
+                      disaster.location.longitude,
+                    );
+                    if (placemarks.isNotEmpty) {
+                      final p = placemarks.first;
+                      fullAddress = [p.street, p.subLocality, p.locality, p.subAdministrativeArea]
+                          .where((s) => s != null && s.isNotEmpty)
+                          .join(', ');
+                    } else {
+                      fullAddress = 'Alamat tidak ditemukan.';
+                    }
+                  } catch (e) {
+                    fullAddress = 'Gagal memuat alamat.';
+                  }
+                  if(mounted) {
+                     setModalState(() {});
+                  }
+                }
+
+                // Panggil sekali saja saat build pertama
+                if (fullAddress == 'Memuat alamat...') {
+                  getAddress();
+                }
+
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: ListView(
+                    controller: controller, // Menggunakan scroll controller dari DraggableScrollableSheet
+                    children: [
+                      // GAMBAR UTAMA
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                        child: disaster.imageUrls.isNotEmpty
+                            ? Image.network(
+                                disaster.imageUrls.first,
+                                height: 200,
+                                width: double.infinity,
                                 fit: BoxFit.cover,
-                                // Tampilkan loading indicator saat gambar dimuat
-                                loadingBuilder: (context, child, progress) {
-                                  return progress == null ? child : const Center(child: CircularProgressIndicator());
-                                },
-                                // Tampilkan ikon error jika gambar gagal dimuat
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    width: 100,
-                                    height: 100,
-                                    color: Colors.grey[200],
-                                    child: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
-                                  );
-                                },
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  height: 200,
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.location_pin, size: 80, color: Colors.grey),
+                                ),
+                              )
+                            : Container(
+                                height: 200,
+                                color: Colors.teal[50],
+                                child: Icon(Icons.shield_outlined, size: 80, color: Colors.teal[200]),
                               ),
-                            ),
-                          );
-                        },
                       ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
+                      
+                      // KONTEN UTAMA
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              disaster.type.displayName,
+                              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              disaster.district,
+                              style: const TextStyle(fontSize: 16, color: Colors.black54),
+                            ),
+                            const SizedBox(height: 16),
+                            const Divider(),
+                            _buildInfoRow(Icons.location_on_outlined, fullAddress),
+                            _buildInfoRow(
+                              Icons.calendar_today_outlined,
+                              '${disaster.dateTime.day}/${disaster.dateTime.month}/${disaster.dateTime.year} - ${disaster.dateTime.hour}:${disaster.dateTime.minute.toString().padLeft(2, '0')}',
+                            ),
+                            _buildInfoRow(Icons.info_outline, disaster.description),
+                            const SizedBox(height: 16),
+                            
+                            // GALERI FOTO YANG BISA DIGESER
+                            if (disaster.imageUrls.length > 1) ...[
+                              const Text(
+                                "Dokumentasi Foto",
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                height: 100,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: disaster.imageUrls.length,
+                                  itemBuilder: (context, index) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(right: 8.0),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          disaster.imageUrls[index],
+                                          width: 100,
+                                          height: 100,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ]
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         );
       },
     );
   }
 
+  // Helper widget untuk membuat baris info (Icon + Teks)
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Colors.teal, size: 24),
+          const SizedBox(width: 16),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 16))),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Sisa kode build tetap sama, tidak perlu diubah.
     final authService = Provider.of<AuthService>(context);
     return Scaffold(
       appBar: AppBar(
