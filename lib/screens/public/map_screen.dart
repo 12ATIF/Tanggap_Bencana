@@ -19,7 +19,7 @@ class _MapScreenState extends State<MapScreen> {
   final LatLng _center = const LatLng(-7.330, 108.222);
   final DisasterService _disasterService = DisasterService();
   final MapController _mapController = MapController();
-  
+
   late Future<List<Disaster>> _disastersFuture;
 
   @override
@@ -49,25 +49,22 @@ class _MapScreenState extends State<MapScreen> {
       _fetchDisasters();
     }
   }
-  
-  // --- FUNGSI TAMPILAN DETAIL LOKASI YANG DIROMBAK TOTAL ---
+
   void _showDisasterDetails(BuildContext context, Disaster disaster) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Penting agar bisa fullscreen
-      backgroundColor: Colors.transparent, // Membuat latar belakang transparan
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.6, // Tampilan awal 60%
-          minChildSize: 0.4,     // Minimal 40%
-          maxChildSize: 0.9,     // Maksimal 90%
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
           builder: (_, controller) {
             String fullAddress = 'Memuat alamat...';
 
-            // Menggunakan StatefulBuilder untuk update alamat
             return StatefulBuilder(
               builder: (BuildContext context, StateSetter setModalState) {
-                // Fungsi untuk mengambil alamat dari koordinat
                 Future<void> getAddress() async {
                   try {
                     List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -76,7 +73,12 @@ class _MapScreenState extends State<MapScreen> {
                     );
                     if (placemarks.isNotEmpty) {
                       final p = placemarks.first;
-                      fullAddress = [p.street, p.subLocality, p.locality, p.subAdministrativeArea]
+                      fullAddress = [
+                        p.street,
+                        p.subLocality,
+                        p.locality,
+                        p.subAdministrativeArea
+                      ]
                           .where((s) => s != null && s.isNotEmpty)
                           .join(', ');
                     } else {
@@ -85,12 +87,11 @@ class _MapScreenState extends State<MapScreen> {
                   } catch (e) {
                     fullAddress = 'Gagal memuat alamat.';
                   }
-                  if(mounted) {
-                     setModalState(() {});
+                  if (mounted) {
+                    setModalState(() {});
                   }
                 }
 
-                // Panggil sekali saja saat build pertama
                 if (fullAddress == 'Memuat alamat...') {
                   getAddress();
                 }
@@ -98,34 +99,36 @@ class _MapScreenState extends State<MapScreen> {
                 return Container(
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: ListView(
-                    controller: controller, // Menggunakan scroll controller dari DraggableScrollableSheet
+                    controller: controller,
                     children: [
-                      // GAMBAR UTAMA
                       ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                        borderRadius:
+                            const BorderRadius.vertical(top: Radius.circular(20)),
                         child: disaster.imageUrls.isNotEmpty
                             ? Image.network(
                                 disaster.imageUrls.first,
                                 height: 200,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Container(
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
                                   height: 200,
                                   color: Colors.grey[300],
-                                  child: const Icon(Icons.location_pin, size: 80, color: Colors.grey),
+                                  child: const Icon(Icons.location_pin,
+                                      size: 80, color: Colors.grey),
                                 ),
                               )
                             : Container(
                                 height: 200,
                                 color: Colors.teal[50],
-                                child: Icon(Icons.shield_outlined, size: 80, color: Colors.teal[200]),
+                                child: Icon(Icons.shield_outlined,
+                                    size: 80, color: Colors.teal[200]),
                               ),
                       ),
-                      
-                      // KONTEN UTAMA
                       Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
@@ -133,11 +136,13 @@ class _MapScreenState extends State<MapScreen> {
                           children: [
                             Text(
                               disaster.type.displayName,
-                              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  fontSize: 24, fontWeight: FontWeight.bold),
                             ),
                             Text(
                               disaster.district,
-                              style: const TextStyle(fontSize: 16, color: Colors.black54),
+                              style: const TextStyle(
+                                  fontSize: 16, color: Colors.black54),
                             ),
                             const SizedBox(height: 16),
                             const Divider(),
@@ -146,14 +151,14 @@ class _MapScreenState extends State<MapScreen> {
                               Icons.calendar_today_outlined,
                               '${disaster.dateTime.day}/${disaster.dateTime.month}/${disaster.dateTime.year} - ${disaster.dateTime.hour}:${disaster.dateTime.minute.toString().padLeft(2, '0')}',
                             ),
-                            _buildInfoRow(Icons.info_outline, disaster.description),
+                            _buildInfoRow(
+                                Icons.info_outline, disaster.description),
                             const SizedBox(height: 16),
-                            
-                            // GALERI FOTO YANG BISA DIGESER
                             if (disaster.imageUrls.length > 1) ...[
                               const Text(
                                 "Dokumentasi Foto",
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16),
                               ),
                               const SizedBox(height: 8),
                               SizedBox(
@@ -163,9 +168,11 @@ class _MapScreenState extends State<MapScreen> {
                                   itemCount: disaster.imageUrls.length,
                                   itemBuilder: (context, index) {
                                     return Padding(
-                                      padding: const EdgeInsets.only(right: 8.0),
+                                      padding:
+                                          const EdgeInsets.only(right: 8.0),
                                       child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
                                         child: Image.network(
                                           disaster.imageUrls[index],
                                           width: 100,
@@ -192,7 +199,6 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  // Helper widget untuk membuat baris info (Icon + Teks)
   Widget _buildInfoRow(IconData icon, String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -209,7 +215,6 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Sisa kode build tetap sama, tidak perlu diubah.
     final authService = Provider.of<AuthService>(context);
     return Scaffold(
       appBar: AppBar(
@@ -228,25 +233,28 @@ class _MapScreenState extends State<MapScreen> {
             ),
         ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.teal),
-              child: Text('Menu', style: TextStyle(color: Colors.white, fontSize: 24)),
+      drawer: authService.isAdminLoggedIn
+          ? null
+          : Drawer(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  const DrawerHeader(
+                    decoration: BoxDecoration(color: Colors.teal),
+                    child: Text('Menu',
+                        style: TextStyle(color: Colors.white, fontSize: 24)),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.login),
+                    title: const Text('Login Petugas'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).pushNamed('/login');
+                    },
+                  ),
+                ],
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.login),
-              title: const Text('Login Petugas'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context).pushNamed('/login');
-              },
-            ),
-          ],
-        ),
-      ),
       body: FutureBuilder<List<Disaster>>(
         future: _disastersFuture,
         builder: (context, snapshot) {
@@ -299,7 +307,8 @@ class _MapScreenState extends State<MapScreen> {
           ? FloatingActionButton.extended(
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Ketuk lokasi di peta untuk menambahkan laporan.'),
+                  content:
+                      Text('Ketuk lokasi di peta untuk menambahkan laporan.'),
                 ));
               },
               icon: const Icon(Icons.add_location_alt_outlined),

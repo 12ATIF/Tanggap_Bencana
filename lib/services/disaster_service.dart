@@ -7,7 +7,8 @@ class DisasterService {
   Future<List<Disaster>> getDisasters() async {
     try {
       final response = await supabase.from('disasters').select();
-      final disasters = response.map((data) => Disaster.fromMap(data)).toList();
+      final disasters =
+          response.map((data) => Disaster.fromMap(data)).toList();
       return disasters;
     } catch (e) {
       print('Error fetching disasters: $e');
@@ -22,26 +23,26 @@ class DisasterService {
     required String district,
     required DateTime dateTime,
     required String description,
-    // --- PERUBAHAN UTAMA DI SINI ---
-    // Terima List<File>, bukan lagi satu File
     List<File>? imageFiles,
   }) async {
     try {
       List<String> imageUrls = [];
 
-      // Lakukan perulangan untuk mengunggah setiap file jika ada
       if (imageFiles != null && imageFiles.isNotEmpty) {
         for (var file in imageFiles) {
-          final fileName = '${DateTime.now().millisecondsSinceEpoch}-${file.path.split('/').last}';
+          final fileName =
+              '${DateTime.now().millisecondsSinceEpoch}-${file.path.split('/').last}';
           final filePath = 'public/$fileName';
 
           await supabase.storage.from('disasterimages').upload(
                 filePath,
                 file,
-                fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+                fileOptions:
+                    const FileOptions(cacheControl: '3600', upsert: false),
               );
-              
-          final imageUrl = supabase.storage.from('disasterimages').getPublicUrl(filePath);
+
+          final imageUrl =
+              supabase.storage.from('disasterimages').getPublicUrl(filePath);
           imageUrls.add(imageUrl);
         }
       }
@@ -53,15 +54,34 @@ class DisasterService {
         'district': district,
         'date_time': dateTime.toIso8601String(),
         'description': description,
-        // Kirim list URL ke Supabase (nama kolom harus sama dengan di database: 'image_urls')
         'image_urls': imageUrls,
       };
-      
-      await supabase.from('disasters').insert(dataToInsert);
 
+      await supabase.from('disasters').insert(dataToInsert);
     } catch (e) {
       print('Error adding disaster: $e');
       throw Exception('Gagal menambahkan laporan.');
+    }
+  }
+
+  Future<void> updateDisaster(Disaster disaster) async {
+    try {
+      await supabase
+          .from('disasters')
+          .update(disaster.toMap())
+          .eq('id', disaster.id);
+    } catch (e) {
+      print('Error updating disaster: $e');
+      throw Exception('Gagal memperbarui laporan.');
+    }
+  }
+
+  Future<void> deleteDisaster(String id) async {
+    try {
+      await supabase.from('disasters').delete().eq('id', id);
+    } catch (e) {
+      print('Error deleting disaster: $e');
+      throw Exception('Gagal menghapus laporan.');
     }
   }
 }
